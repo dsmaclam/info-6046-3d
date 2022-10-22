@@ -91,6 +91,16 @@ void Renderer::tick()
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	//todo: rendering code
+	IModelManager::ModelDrawData draw_data;
+	if(model_manager_->get_model_draw_data("cube", &draw_data))
+	{
+		glUseProgram(draw_data.shader_program);
+		glUniform3f(glGetUniformLocation(draw_data.shader_program, "color"), 0.0f, 1.0f, 0.0f);
+		glBindVertexArray(draw_data.vao);
+		glDrawElements(GL_TRIANGLES, draw_data.num_indices, GL_UNSIGNED_INT, nullptr);
+		glBindVertexArray(0);
+
+	}
 
 	glfwSwapBuffers(window_);
 }

@@ -126,6 +126,19 @@ bool ShaderManager::load_program(const std::string& name, const std::string& ver
     return true;
 }
 
+bool ShaderManager::get_program_id(const std::string& name, int* program_id) const
+{
+    const auto program = shader_programs_.find(name);
+    if(program == shader_programs_.end())
+    {
+        return false;
+    }
+
+    *program_id = program->second;
+
+    return true;
+}
+
 void ShaderManager::shutdown()
 {
     for(const auto& shader_program : shader_programs_)

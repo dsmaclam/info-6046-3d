@@ -170,8 +170,6 @@ bool Application::should_run() const
 
 int Application::run() const
 {
-	game_engine_->get_audio_manager()->play_sound("test");
-
 	while(should_run())
 	{
 		game_engine_->get_renderer()->tick();
