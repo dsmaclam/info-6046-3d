@@ -148,6 +148,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\actor\Actor.h" />
+    <ClInclude Include="src\renderer\camera\Camera.h" />
     <ClInclude Include="src\renderer\model\ModelManager.h" />
     <ClInclude Include="src\renderer\shader\ShaderManager.h" />
     <ClInclude Include="src\renderer\OpenGL.h" />
@@ -156,6 +158,8 @@
     <ClInclude Include="src\Engine.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\actor\Actor.cpp" />
+    <ClCompile Include="src\renderer\camera\Camera.cpp" />
     <ClCompile Include="src\renderer\model\ModelManager.cpp" />
     <ClCompile Include="src\renderer\shader\ShaderManager.cpp" />
     <ClCompile Include="src\glad.c" />

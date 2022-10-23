@@ -2,16 +2,28 @@
 #include "OpenGL.h"
 #include "model/ModelManager.h"
 #include "shader/ShaderManager.h"
+#include <glm/glm.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include "../actor/Actor.h"
+
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float last_frame_time;
+float delta_time;
 
 void Renderer::internal_key_callback(GLFWwindow* window, int key, int scan_code, int action, int mods)
 {
-	if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 	{
 		exit();
 		return;
 	}
 
-	if(window_key_callback_)
+	if (window_key_callback_)
 	{
 		window_key_callback_(key, scan_code, action, mods);
 	}
@@ -34,7 +46,7 @@ IModelManager* Renderer::get_model_manager()
 
 bool Renderer::initialize(const InitializationSettings& settings)
 {
-	if(glfwInit() != GLFW_TRUE)
+	if (glfwInit() != GLFW_TRUE)
 	{
 		return false;
 	}
@@ -46,7 +58,7 @@ bool Renderer::initialize(const InitializationSettings& settings)
 		nullptr,
 		nullptr
 	);
-	if(!window_)
+	if (!window_)
 	{
 		return false;
 	}
@@ -84,21 +96,82 @@ void Renderer::shutdown()
 	glfwTerminate();
 }
 
-void Renderer::tick()
+float angle = 0;
+
+
+
+void Renderer::tick(const std::vector<IActor*> actors)
 {
+	const double now = glfwGetTime();
+	delta_time = last_frame_time - now;
+	last_frame_time = now;
+
+	//todo:move this code (user input) to a its own class
+	if(glfwGetKey(window_, GLFW_KEY_W))
+	{
+		cameraPos -= 10.0f * cameraFront * delta_time;
+	}
+
+	if (glfwGetKey(window_, GLFW_KEY_S))
+	{
+		cameraPos += 10.0f * cameraFront * delta_time;
+	}
+
+	if (glfwGetKey(window_, GLFW_KEY_A))
+	{
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * 10.0f * delta_time;
+	}
+
+	if (glfwGetKey(window_, GLFW_KEY_D))
+	{
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * 10.0f * delta_time;
+	}
+	
+
+	if(delta_time > 0.001f)
+	{
+		return;
+	}
+
 	glfwPollEvents();
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	//todo: rendering code
-	IModelManager::ModelDrawData draw_data;
-	if(model_manager_->get_model_draw_data("cube", &draw_data))
+	for (const auto & actor : actors)
 	{
-		glUseProgram(draw_data.shader_program);
-		glUniform3f(glGetUniformLocation(draw_data.shader_program, "color"), 0.0f, 1.0f, 0.0f);
-		glBindVertexArray(draw_data.vao);
-		glDrawElements(GL_TRIANGLES, draw_data.num_indices, GL_UNSIGNED_INT, nullptr);
-		glBindVertexArray(0);
+		IModelManager::ModelDrawData draw_data;
+		if (model_manager_->get_model_draw_data(actor->get_model_name(), &draw_data))
+		{
+			glm::mat4 projection;
+			projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 150.0f);
+			glUniformMatrix4fv(glGetUniformLocation(draw_data.shader_program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+			glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+			glUniformMatrix4fv(glGetUniformLocation(draw_data.shader_program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::translate(model, actor->get_position());
+			model = glm::rotate(model, glm::radians(angle++), glm::vec3(1.0f, 0.3f, 0.5f));
+			glUniformMatrix4fv(glGetUniformLocation(draw_data.shader_program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+			glUseProgram(draw_data.shader_program);
+			glUniform3f(glGetUniformLocation(draw_data.shader_program, "color"), 0.0f, 1.0f, 0.0f);
+			glBindVertexArray(draw_data.vao);
+			glDrawElements(GL_TRIANGLES, draw_data.num_indices, GL_UNSIGNED_INT, nullptr);
+			glBindVertexArray(0);
+
+		}
+	}
+
+	IModelManager::ModelDrawData draw_data;
+	if (model_manager_->get_model_draw_data("cube", &draw_data))
+	{
+
+		
+		//todo: rendering code
+
+		
+		
 
 	}
 
@@ -120,4 +193,14 @@ bool Renderer::set_window_key_callback(const window_key_callback_signature funct
 	window_key_callback_ = function;
 
 	return true;
+}
+
+IActor* Renderer::new_actor()
+{
+	return new Actor();
+}
+
+glm::vec3 Renderer::get_camera_position() const
+{
+	return cameraPos;
 }

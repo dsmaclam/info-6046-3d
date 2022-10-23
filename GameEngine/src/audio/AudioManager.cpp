@@ -113,9 +113,18 @@ bool AudioManager::play_sound(const std::string& name)
 	return true;
 }
 
-bool AudioManager::tick()
+bool AudioManager::tick(const glm::vec3& camera_position)
 {
 	assert(fmod_system_ && "no system object");
+
+	//update listener to camera position
+	FMOD_VECTOR fmod_camera_position;
+	fmod_camera_position.x = camera_position.x;
+	fmod_camera_position.y = camera_position.y;
+	fmod_camera_position.z = camera_position.z;
+
+	is_okay(fmod_system_->set3DListenerAttributes(0, &fmod_camera_position, nullptr, nullptr, nullptr));
+
 	return is_okay(fmod_system_->update());
 }
 
@@ -195,6 +204,56 @@ bool AudioManager::set_channel_group_volume(const std::string& name, const float
 	}
 
 	return is_okay(channel_group->second->setVolume(volume));
+}
+
+bool AudioManager::set_listener_position(const glm::vec3 position)
+{
+	FMOD_VECTOR fmod_position;
+	fmod_position.x = position.x;
+	fmod_position.y = position.y;
+	fmod_position.z = position.z;
+
+	return is_okay(fmod_system_->set3DListenerAttributes(0, &fmod_position, nullptr, nullptr, nullptr));
+}
+
+bool AudioManager::play_sound(const std::string& sound_name, glm::vec3 position, float max_distance)
+{
+	assert(fmod_system_ && "no system object");
+
+	assert(sounds_.find(sound_name) != sounds_.end() && "sound not found");
+	const auto sound = sounds_.find(sound_name);
+	if (sound == sounds_.end())
+	{
+		return false;
+	}
+
+	FMOD::Channel* channel;
+	if (!is_okay(fmod_system_->playSound(sound->second, nullptr, true, &channel)))
+	{
+		return false;
+	}
+
+	FMOD_VECTOR fmod_sound_position;
+	fmod_sound_position.x = position.x;
+	fmod_sound_position.y = position.y;
+	fmod_sound_position.z = position.z;
+
+	if(!is_okay(channel->set3DAttributes(&fmod_sound_position, nullptr)))
+	{
+		return false;
+	}
+
+	if(!is_okay(channel->set3DMinMaxDistance(1.0f, 10000)))
+	{
+		return false;
+	}
+
+	if(!is_okay(channel->setPaused(false)))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool AudioManager::play_sound(const std::string& sound_name, const std::string& channel_group_name)

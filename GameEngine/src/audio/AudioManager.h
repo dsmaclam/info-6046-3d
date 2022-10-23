@@ -25,7 +25,7 @@ public:
 	bool unload_sound(const std::string& name) override;
 	bool play_sound(const std::string& name) override;
 	bool play_sound(const std::string& sound_name, const std::string& channel_group_name) override;
-	bool tick() override;
+	bool tick(const glm::vec3& camera_position) override;
 
 	//channel groups
 	bool load_channel_group(const std::string& name) override;
@@ -34,5 +34,9 @@ public:
 
 	bool get_channel_group_volume(const std::string& name, float** volume) override;
 	bool set_channel_group_volume(const std::string& name, float volume) override;
+
+	//3d
+	bool set_listener_position(const glm::vec3 position) override;
+	bool play_sound(const std::string& sound_name, glm::vec3 position, float max_distance) override;
 };
 

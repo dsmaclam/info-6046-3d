@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <renderer/IRenderer.h>
 struct GLFWwindow;
 class IShaderManager;
@@ -30,10 +31,12 @@ public:
 
 	bool initialize(const InitializationSettings& settings) override;
 	void shutdown() override;
-	void tick() override;
+	void tick(std::vector<IActor*> actors) override;
 	bool render_window_open() override;
 	void exit() override;
 	bool set_window_key_callback(window_key_callback_signature function) override;
-	
+	IActor* new_actor() override;
+
+	glm::vec3 get_camera_position() const override;
 };
 
