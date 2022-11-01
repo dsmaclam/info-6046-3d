@@ -26,6 +26,8 @@ protected:
 	bool initialize_renderer_shaders_sub() const;
 	bool initialize_renderer_models_sub() const;
 
+	double last_frame_time;
+
 public:
 	Application();
 

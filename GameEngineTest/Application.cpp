@@ -4,6 +4,7 @@
 #include <vector>
 #include <audio/IAudioManager.h>
 #include <audio/LoadSoundModes.h>
+#include <glm/geometric.hpp>
 #include <renderer/IRenderer.h>
 #include <renderer/shader/IShaderManager.h>
 #include <renderer/model/IModelManager.h>
@@ -13,7 +14,9 @@
 void window_key_callback(const int key, int scan_code, const int action, int mods);
 
 Application::Application() :game_engine_(nullptr)
-{}
+{
+	
+}
 
 bool Application::load_engine_dll()
 {
@@ -86,6 +89,9 @@ bool Application::initialize_audio_sounds_sub() const
 
 	const bool result =
 		audio_manager->load_sound("arrow", "./assets/sounds/arrow.wav", flags) &&
+		audio_manager->load_sound("engine", "./assets/sounds/engine.mp3", flags) &&
+		audio_manager->load_sound("impact", "./assets/sounds/impact.mp3", DEFAULT | _3D) &&
+		audio_manager->load_sound("metal_impact", "./assets/sounds/metal_impact.wav", DEFAULT | _3D) &&
 		audio_manager->load_sound("jungle", "./assets/sounds/jungle.mp3", flags);
 
 	return result;
@@ -131,7 +137,17 @@ bool Application::initialize_renderer_models_sub() const
 
 	IModelManager* model_manager = game_engine_->get_renderer()->get_model_manager();
 
+	if (!model_manager->load_model("sphere", "./assets/models/sphere.ply", "basic"))
+	{
+		return false;
+	}
+
 	if (!model_manager->load_model("cube", "./assets/models/cube.ply", "basic"))
+	{
+		return false;
+	}
+
+	if (!model_manager->load_model("plane", "./assets/models/plane.ply", "basic"))
 	{
 		return false;
 	}
@@ -165,8 +181,6 @@ bool Application::initialize()
 		return false;
 	}
 
-
-
 	return true;
 }
 
@@ -178,30 +192,149 @@ bool Application::should_run() const
 int Application::run() const
 {
 	std::vector<IActor*> actors;
+	{
+		const auto actor = game_engine_->get_renderer()->new_actor();
+		actor->set_model_name("sphere");
+		actor->set_color(glm::vec3(1.0f, 0.0f, 1.0f));
+		actor->set_position(glm::vec3(0.0f,0.0f,15.0f));
+		actor->set_velocity(glm::vec3(0.0f, 0.0f, -2.5f));
+
+		//we need to attach the sound to the object
+		FMOD::Channel* channel;
+		game_engine_->get_audio_manager()->play_sound("engine", glm::vec3(), 0.1f, &channel);
+		actor->set_attached_sound(channel);
+		actors.push_back(actor);
+	}
 
 	{
 		const auto actor = game_engine_->get_renderer()->new_actor();
-		actor->set_model_name("cube");
-		actor->set_position(glm::vec3());
-		actors.push_back(actor);
+		actor->set_model_name("sphere");
+		actor->set_color(glm::vec3(0.0f, 1.0f, 0.0f));
+		actor->set_position(glm::vec3(0.0f,0.0f,-15.0f));
+		actor->set_velocity(glm::vec3(0.0f, 0.0f, 2.5f));
 
-		game_engine_->get_audio_manager()->play_sound("jungle", glm::vec3(), 5.0f);
+		//we need to attach the sound to the object
+		FMOD::Channel* channel;
+		game_engine_->get_audio_manager()->play_sound("engine", glm::vec3(), 0.1f, &channel);
+		actor->set_attached_sound(channel);
+		actors.push_back(actor);
 	}
-	
+
 	{
 		const auto actor = game_engine_->get_renderer()->new_actor();
-		actor->set_model_name("cube");
-		actor->set_position(glm::vec3(0.0f,0.0f,-100.0f));
-		actors.push_back(actor);
+		actor->set_model_name("sphere");
+		actor->set_color(glm::vec3(1.0f, 0.0f, 0.0f));
+		actor->set_position(glm::vec3(15.0f, 0.0f, -15.0f));
+		actor->set_velocity(glm::vec3(-1.0f, 0.0f, 0.5f));
 
-		game_engine_->get_audio_manager()->play_sound("arrow", glm::vec3(0.0f, 0.0f, -100.0f), 5.0f);
+		//we need to attach the sound to the object
+		FMOD::Channel* channel;
+		game_engine_->get_audio_manager()->play_sound("engine", glm::vec3(), 0.1f, &channel);
+		actor->set_attached_sound(channel);
+		actors.push_back(actor);
 	}
-	
+
+	{
+		const auto actor = game_engine_->get_renderer()->new_actor();
+		actor->set_model_name("sphere");
+		actor->set_color(glm::vec3(1.0f, 0.0f, 0.0f));
+		actor->set_position(glm::vec3(15.0f, 0.0f, 0.0f));
+		actor->set_velocity(glm::vec3(-1.0f, 0.0f, -0.5f));
+
+		//we need to attach the sound to the object
+		FMOD::Channel* channel;
+		game_engine_->get_audio_manager()->play_sound("engine", glm::vec3(), 0.1f, &channel);
+		actor->set_attached_sound(channel);
+		actors.push_back(actor);
+	}
+
 
 	while (should_run())
 	{
+		const auto camera_pos = game_engine_->get_renderer()->get_camera_position();
+		printf("x:%f y:%f z:%f\n", camera_pos.x, camera_pos.y, camera_pos.z);
+
+		for (auto actor : actors)
+		{
+			const auto sound = actor->get_attached_sound();
+			if(sound)
+			{
+				//do physics stuff here
+				auto current_position = actor->get_position();
+				auto current_velocity = actor->get_velocity();
+				current_position += current_velocity * game_engine_->get_renderer()->get_frame_delta_time();
+				actor->set_position(current_position);
+
+				constexpr float cube_size = 20.0f;
+				//bounds check to see if we are in our invisible cube
+				if(fabs(current_position.x) > cube_size)
+				{
+					current_position.x = current_position.x > 0 ? cube_size : -cube_size;
+					current_velocity.x *= -1.0f;
+
+					FMOD::Channel* channel;
+					game_engine_->get_audio_manager()->play_sound("impact", current_position, 0.25f, &channel);
+				}
+
+				if (fabs(current_position.y) > cube_size)
+				{
+					current_position.y = current_position.y > 0 ? cube_size : -cube_size;
+					current_velocity.y *= -1.0f;
+
+					FMOD::Channel* channel;
+					game_engine_->get_audio_manager()->play_sound("impact", current_position, 0.25f, &channel);
+				}
+
+				if (fabs(current_position.z) > cube_size)
+				{
+					current_position.z = current_position.z > 0 ? cube_size : -cube_size;
+					current_velocity.z *= -1.0f;
+
+					FMOD::Channel* channel;
+					game_engine_->get_audio_manager()->play_sound("impact", current_position, 0.25f, &channel);
+				}
+				actor->set_velocity(current_velocity);
+
+				//check if collision with other spheres
+				bool did_collide = false;
+				for (IActor* collision_actor : actors)
+				{
+					if(collision_actor != actor)
+					{
+						if(glm::distance(collision_actor->get_position(), actor->get_position()) <= 1.0f)
+						{
+							did_collide = true;
+							{
+								auto direction = collision_actor->get_position() - actor->get_position();
+								direction = glm::normalize(direction);
+								auto new_vel = 5.0f * -direction;
+								actor->set_velocity(new_vel);
+							}
+							{
+								auto direction = actor->get_position() - collision_actor->get_position();
+								direction = glm::normalize(direction);
+								auto new_vel = 5.0f * -direction;
+								actor->set_velocity(new_vel);
+							}
+
+							printf("collision\n");
+						}
+					}
+				}
+
+				if(did_collide)
+				{
+					FMOD::Channel* channel;
+					game_engine_->get_audio_manager()->play_sound("metal_impact", actor->get_position(), 1.0f, &channel);
+				}
+
+				//update the sound position and velocity
+				game_engine_->get_audio_manager()->update_3d_sound_position(actor->get_attached_sound(), current_position);
+			}
+		}
+
 		game_engine_->get_renderer()->tick(actors);
-		game_engine_->get_audio_manager()->tick(game_engine_->get_renderer()->get_camera_position());
+		game_engine_->get_audio_manager()->tick(camera_pos);
 	}
 
 	for (const auto& actor : actors)

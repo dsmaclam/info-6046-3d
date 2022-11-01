@@ -37,6 +37,8 @@ public:
 
 	//3d
 	bool set_listener_position(const glm::vec3 position) override;
-	bool play_sound(const std::string& sound_name, glm::vec3 position, float max_distance) override;
+	bool play_sound(const std::string& sound_name, glm::vec3 position, float max_distance, FMOD::Channel** channel) override;
+	bool update_3d_sound_position(FMOD::Channel* channel, const glm::vec3 position) override;
+	bool update_sound_volume(FMOD::Channel* channel, const float new_volume) override;
 };
 

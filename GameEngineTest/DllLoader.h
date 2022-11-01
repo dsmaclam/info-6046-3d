@@ -10,6 +10,11 @@ class DllLoader
 public:
 	DllLoader() : dll_handle_(nullptr) {}
 
+	~DllLoader()
+	{
+		FreeLibrary(dll_handle_);
+	}
+
 	bool load(const std::string& path)
 	{
 		const auto handle = LoadLibraryA(path.c_str());

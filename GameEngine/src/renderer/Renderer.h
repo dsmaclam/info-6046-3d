@@ -13,8 +13,12 @@ protected:
 	IShaderManager* shader_manager_;
 	IModelManager* model_manager_;
 
-	Renderer() = default;
+	Renderer();
 
+	float last_frame_time_;
+	float current_frame_time_;
+	float frame_delta_time_;
+	
 	void internal_key_callback(GLFWwindow* window, int key, int scan_code, int action, int mods);
 
 	static void key_callback(GLFWwindow* window, int key, int scan_code, int action, int mods);
@@ -38,5 +42,7 @@ public:
 	IActor* new_actor() override;
 
 	glm::vec3 get_camera_position() const override;
+
+	float get_frame_delta_time() override;
 };
 
